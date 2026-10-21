@@ -167,7 +167,7 @@ class OrganEngine
     static constexpr int   kDefaultCharacterStep = 0;  /* clean sine, shaping
                                                         * bypassed */
     static constexpr int   kDefaultPipeLengthStep = 16;
-    static constexpr int   kDefaultMasterStep     = 8; /* gain 0.25 */
+    static constexpr int   kDefaultMasterStep     = 16; /* gain 0.5 */
     static constexpr int   kDefaultDriveStep     = 0;  /* overdrive off */
     static constexpr int   kDefaultRotaryStep    = 0;  /* rotary off (exact
                                                         * bypass) */
@@ -1351,7 +1351,7 @@ class OrganEngine
         UpdateFreqs(v);
     }
 
-    static constexpr float kDefaultMasterGain = .25f; /* 25% at boot */
+    static constexpr float kDefaultMasterGain = .5f; /* 50% at boot */
 
     /** Push the combined 0..100 delay mix/feedback control into the
      *  delay: 0..50 sweeps the dry/wet mix 0..50% at the feedback

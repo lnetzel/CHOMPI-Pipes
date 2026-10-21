@@ -261,7 +261,8 @@ static void test_engine_parameter_positions()
 {
     Rig r;
     r.Init();
-    assert(r.engine.GetMasterStep() == 8);
+    assert(r.engine.GetMasterStep() == 16);
+    assert(r.engine.GetMasterGain() == .5f);
     assert(r.engine.GetFineTuneStep() == 16);
     assert(r.engine.GetFineTuneCents() == 0);
     assert(r.engine.GetDelayTimeStep() == 15);
@@ -327,8 +328,8 @@ static void test_engine_harmonic_and_peak()
 
     r.engine.NoteOn(kNoteC3, 1.f);
     const float peak = r.PeakMs(30.f);
-    /* predicted peak: 0.75 tap x 1/28.5 normalization x 0.25 master gain */
-    const float expect = .75f * (1.f / 28.5f) * .25f;
+    /* predicted peak: 0.75 tap x 1/28.5 normalization x 0.5 master gain */
+    const float expect = .75f * (1.f / 28.5f) * .5f;
     assert(peak > .7f * expect && peak < 1.4f * expect);
 
     /* the rendered ping is the pipe-2 (2 2/3') harmonic, not the
@@ -546,7 +547,7 @@ static void test_engine_gates_release_steal_toggle()
                     peak = a;
             }
         }
-        assert(peak < .02f); /* bounded, well under full scale */
+        assert(peak < .04f); /* bounded, well under full scale */
         for(int i = 0; i < 6; i++)
             r.engine.NoteOff(chord[i]);
         r.engine.NoteOn(48, 1.f); /* all-up: rearm still works */
@@ -729,9 +730,30 @@ static void test_engine_aux_mix()
             assert(dry.buf[channel][sample] == mixed.buf[channel][sample]);
 }
 
+static void test_engine_startup_volume()
+{
+    Rig startup;
+    startup.Init();
+    float rec_l[kBlock], rec_r[kBlock];
+    startup.engine.SetRecordTap(rec_l, rec_r);
+    startup.engine.NoteOn(kNoteC3, 1.f);
+    startup.Block();
+    float peak = 0.f;
+    for(int sample = 0; sample < kBlock; sample++)
+    {
+        assert(startup.buf[0][sample] == rec_l[sample]);
+        assert(startup.buf[1][sample] == rec_r[sample]);
+        assert(startup.buf[2][sample] == rec_l[sample]);
+        assert(startup.buf[3][sample] == rec_r[sample]);
+        peak = fmaxf(peak, fabsf(rec_l[sample]));
+    }
+    assert(peak > 0.f);
+}
+
 int main()
 {
     test_engine_parameter_positions();
+    test_engine_startup_volume();
     test_init_settled();
     test_enable_ramp_endpoints(48000.f);
     test_enable_ramp_endpoints(32000.f);

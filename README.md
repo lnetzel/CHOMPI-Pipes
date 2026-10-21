@@ -324,7 +324,7 @@ reverb decay). The fine-tune bar centers
 on white key 8: exactly centered is that key alone in green, and any
 offset spans red from the center toward the offset (left = down in
 pitch, right = up; all seven keys on that side at +/-50 cents). Boot
-default volume is 25%.
+default volume is 50%.
 
 ### Keys
 
