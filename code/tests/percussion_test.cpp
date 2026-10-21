@@ -678,6 +678,57 @@ static void test_engine_normalization_and_off_equivalence()
     }
 }
 
+static void test_engine_aux_mix()
+{
+    Rig dry;
+    dry.Init();
+    Rig mixed;
+    mixed.Init();
+    float aux_l[kBlock], aux_r[kBlock];
+    float dry_l[kBlock], dry_r[kBlock];
+    float rec_l[kBlock], rec_r[kBlock];
+    dry.engine.SetRecordTap(dry_l, dry_r);
+    mixed.engine.SetRecordTap(rec_l, rec_r);
+    for(int sample = 0; sample < kBlock; sample++)
+    {
+        aux_l[sample] = .2f * sinf(sample * .4f);
+        aux_r[sample] = -.3f * cosf(sample * .2f);
+    }
+    for(float gain : {0.f, .5f, 1.f})
+    {
+        dry.engine.SetMasterGain(gain);
+        mixed.engine.SetMasterGain(gain);
+        dry.RunMs(400.f);
+        mixed.RunMs(400.f);
+        for(int block = 0; block < 20; block++)
+        {
+            dry.Block();
+            mixed.engine.Prepare(kBlock);
+            mixed.engine.Process(mixed.out, kBlock, aux_l, aux_r);
+            for(int sample = 0; sample < kBlock; sample++)
+            {
+                assert(fabsf(rec_l[sample] - dry_l[sample]
+                             - aux_l[sample] * OrganEngine::kRecordTapGain) < 1e-6f);
+                assert(fabsf(rec_r[sample] - dry_r[sample]
+                             - aux_r[sample] * OrganEngine::kRecordTapGain) < 1e-6f);
+                assert(fabsf(mixed.buf[0][sample] - dry.buf[0][sample]
+                             - aux_l[sample] * gain) < 1e-5f);
+                assert(fabsf(mixed.buf[1][sample] - dry.buf[1][sample]
+                             - aux_r[sample] * gain) < 1e-5f);
+                assert(mixed.buf[0][sample] == mixed.buf[2][sample]);
+                assert(mixed.buf[1][sample] == mixed.buf[3][sample]);
+            }
+        }
+        dry.engine.NoteOn(kNoteC3, 1.f);
+        mixed.engine.NoteOn(kNoteC3, 1.f);
+    }
+    dry.Block();
+    mixed.Block();
+    for(int channel = 0; channel < 4; channel++)
+        for(int sample = 0; sample < kBlock; sample++)
+            assert(dry.buf[channel][sample] == mixed.buf[channel][sample]);
+}
+
 int main()
 {
     test_engine_parameter_positions();
@@ -696,6 +747,7 @@ int main()
     test_engine_gates_release_steal_toggle();
     test_engine_independence_of_pipe_controls();
     test_engine_normalization_and_off_equivalence();
+    test_engine_aux_mix();
     printf("percussion_test: all tests passed\n");
     return 0;
 }

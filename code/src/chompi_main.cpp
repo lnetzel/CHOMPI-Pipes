@@ -1853,7 +1853,7 @@ void AudioCallback(AudioHandle::InputBuffer in,
     /* decode one block of the current take (silence while the mode is
      * off, paused or the ring is empty) */
     sd_player_.PopBlock(play_mix_l, play_mix_r, size);
-    engine.Process(out, size); /* audio input ignored */
+    engine.Process(out, size, in[2], in[3]);
     /* capture the pre-gain record tap (fixed -6 dB take level) */
     sd_recorder_.PushBlock(rec_tap_l, rec_tap_r, size);
 #ifdef PIPES_CPU_METER

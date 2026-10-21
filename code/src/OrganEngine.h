@@ -1037,7 +1037,8 @@ class OrganEngine
         }
     }
 
-    void Process(float **out, size_t size)
+    void Process(float **out, size_t size,
+                 const float *aux_l = nullptr, const float *aux_r = nullptr)
     {
         for(size_t i = 0; i < size; i++)
         {
@@ -1242,6 +1243,11 @@ class OrganEngine
              * dry and wet equally and 0% master mutes the tail. The tank
              * runs even with idle voices; 0% mix is bit-exact dry. */
             plate_.Process(out_l, out_r, out_l, out_r);
+            if(aux_l != nullptr && aux_r != nullptr)
+            {
+                out_l += aux_l[i];
+                out_r += aux_r[i];
+            }
             /* record tap: the pre-master-gain bus at the fixed -6 dB
              * recording level - the volume knob never touches a take */
             if(rec_tap_l_ != nullptr)

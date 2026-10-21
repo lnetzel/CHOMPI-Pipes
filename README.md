@@ -10,6 +10,12 @@ each pipe's volume and Character and pitch slowly and independently, and 15
 SD-card preset slots.
 Included is also a simple recorder where you can record jams directly to the SD card as 48kHz, 16 bit *.wav files.
 
+Stereo AUX IN is always mixed with the organ on the headphone and master
+outputs and included in SD recordings. AUX bypasses the organ effects;
+the master volume controls the combined listening level, with no separate
+monitor mix. Set the AUX level on the connected source and lower it if
+the combined output clips.
+
 ## Controls
 
 The hardware toggle switch next to the SHIFT (CHOMPI) key selects the
@@ -460,8 +466,8 @@ Modulation-mode destination and the wheel's rotary/vibrato selection.
 
 ## Recording to SD
 
-PIPES records the full audio chain - pipes, fuzz, rotary, delay and
-reverb - to 48 kHz / 16-bit stereo WAV files on the SD card
+PIPES records the full organ audio chain - pipes, fuzz, rotary, delay and
+reverb - plus dry stereo AUX IN to 48 kHz / 16-bit stereo WAV files on the SD card
 (`PIPES/RECORDINGS/Recording 01.wav`, `Recording 02.wav`, ...). The
 tap sits BEFORE the master volume knob at a fixed -6 dB level, so
 takes land DAW-ready no matter where the knob is; the headphone and
