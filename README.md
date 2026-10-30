@@ -10,11 +10,30 @@ each pipe's volume and Character and pitch slowly and independently, and 15
 SD-card preset slots.
 Included is also a simple recorder where you can record jams directly to the SD card as 48kHz, 16 bit *.wav files.
 
-Stereo AUX IN is always mixed with the organ on the headphone and master
-outputs and included in SD recordings. AUX bypasses the organ effects;
-the master volume controls the combined listening level, with no separate
-monitor mix. Set the AUX level on the connected source and lower it if
-the combined output clips.
+Two audio routings are selectable, in Normal Mode only (SHIFT = the
+CHOMPI key):
+
+- **Normal routing (boot default):** SHIFT + Black 6 (C#4, the 6th
+  black key from the left). Stereo AUX IN is mixed with the organ on
+  the headphone and master outputs and included in SD recordings. AUX
+  bypasses the organ effects; the master volume controls the combined
+  listening level, with no separate monitor mix. Set the AUX level on
+  the connected source and lower it if the combined output clips.
+- **Send FX routing:** SHIFT + Black 7 (D#4, the 7th black key). The
+  master (line) output carries only the dry organ at a fixed
+  pre-master-volume level - a send into an external stereo effects
+  unit whose output you patch back into AUX IN. The headphone output
+  then carries ONLY the AUX return (the effected audio), scaled by the
+  master volume knob, and SD recordings capture only AUX IN too. The
+  AUX return is never sent back out the line output, so the loop
+  cannot feed back. With nothing patched into AUX IN the headphones
+  and recordings are silent - that is the point: set the external unit
+  to 100% wet.
+
+The selection is session-only (boots on Normal, not stored in presets)
+and has no LED feedback. In Playback mode the routing is always forced
+to Normal, so takes stay audible in the headphones; the selection
+resumes when Playback mode exits.
 
 ## Controls
 
@@ -462,7 +481,8 @@ plus vibrato depth and note-on delay, rotary amount, fuzz amount and
 tone, the global distortion modulation amount, reverb mix
 and decay, percussion on/off, and delay mix and time. NOT saved:
 master volume, fine tune, octave shift, latch, page selections, the
-Modulation-mode destination and the wheel's rotary/vibrato selection.
+Modulation-mode destination, the wheel's rotary/vibrato selection and
+the audio routing selection.
 
 ## Recording to SD
 
@@ -471,7 +491,9 @@ reverb - plus dry stereo AUX IN to 48 kHz / 16-bit stereo WAV files on the SD ca
 (`PIPES/RECORDINGS/Recording 01.wav`, `Recording 02.wav`, ...). The
 tap sits BEFORE the master volume knob at a fixed -6 dB level, so
 takes land DAW-ready no matter where the knob is; the headphone and
-master outputs are unchanged.
+master outputs are unchanged. With Send FX routing selected (see the
+routing section above) the recording captures ONLY stereo AUX IN - the
+effected return from the external unit - at the same fixed -6 dB level.
 
 - **Start:** hold PLAY + LOOP together for 2 s (Normal Mode only, no
   SHIFT). A red bar fills the 15 white keys while you hold; releasing
@@ -508,8 +530,9 @@ Playback mode plays the SD takes (`PIPES/RECORDINGS/Recording NN.wav`)
 straight from the card, one at a time - pure playback: the take
 bypasses every FX stage (it is injected after the record tap, just
 before the master volume knob, so the volume knob still scales it),
-all 25 keys are inert as notes, MIDI In is ignored and recording is
-fully blocked.
+all 25 keys are inert as notes, MIDI In is ignored, recording is
+fully blocked and the audio routing is forced to Normal (a Send FX
+selection resumes untouched when the mode exits).
 
 - **Enter/exit:** hold PLAY for 2 s (PLAY alone, Normal Mode only -
   PLAY + LOOP stays the record chord). A blue bar fills the 15 white
@@ -548,7 +571,11 @@ envelope and joins the mix through its own shared decay)
 -> fuzz distortion (tone-controlled) -> rotary
 speaker -> stereo BBD-style delay -> plate reverb -> master gain (with the automatic fixed fuzz
 output trim) -> headphone + master stereo
-output pairs. Character 0 exactly bypasses shaping; the clean-sine
+output pairs. Stereo AUX IN joins the bus after the plate reverb
+(bypassing the organ FX); with Send FX routing the AUX return instead
+goes ONLY to the headphone pair (x master gain) and the master pair
+carries the dry pre-master-gain organ alone. Character 0 exactly
+bypasses shaping; the clean-sine
 engine is bit-identical to the previous firmware's sine-only sound.
 Reverb 0% is bit-exact dry; vibrato depth 0 is an exact bypass;
 delay 0% is bit-exact dry; percussion off is an exact bypass with the

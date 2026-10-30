@@ -17,6 +17,7 @@
 #include "SdRecorder.h"
 #include "SdPlayer.h"
 #include "ModDest.h"
+#include "AudioRouting.h"
 #ifdef PIPES_CPU_METER
 #include "util/CpuLoadMeter.h"
 #endif
@@ -187,6 +188,14 @@ static_assert(kModDestKeySw[5] == static_cast<int>(Hardware::SwId::KEY_23),
               "mod destination key 8 is KEY_23 (F#4)");
 static_assert(kModDestKeySw[6] == static_cast<int>(Hardware::SwId::KEY_24),
               "mod destination key 9 is KEY_24 (G#4)");
+
+/* the audio-routing selection keys are the sixth and seventh physical
+ * black keys from the left (AudioRouting.h keeps the values so the
+ * native tests can exercise the mapping; same break-the-build rule) */
+static_assert(kRoutingKeySw[0] == static_cast<int>(Hardware::SwId::KEY_21),
+              "routing key: Normal is KEY_21 (C#4, black key 6)");
+static_assert(kRoutingKeySw[1] == static_cast<int>(Hardware::SwId::KEY_22),
+              "routing key: Send FX is KEY_22 (D#4, black key 7)");
 
 /** SMT LED indices of the 15 white keys, left (C3) to right (C5). */
 static constexpr int     kNumWhiteKeys = 15;
@@ -415,6 +424,13 @@ static bool     shift_held_ = false;
 static bool     latch_on_   = false;        /* KEY_28 (LOOP) toggles key latch */
 static bool     latched_[40];               /* key released while latch on: note
                                              * keeps sounding until unlatch */
+/** Audio routing selection (AudioRouting.h): SHIFT + Black 6 (C#4) =
+ *  Normal, SHIFT + Black 7 (D#4) = Send FX, Normal Mode only. Volatile:
+ *  written by PollControls (audio ISR), read every block by
+ *  AudioCallback; Playback Mode forces Normal at the SetRouting call
+ *  site without rewriting this selection. Session-only: boots Normal,
+ *  never stored in the SD-card presets. */
+static volatile int routing_ = kRoutingDefault;
 
 /** MIDI note on/off goes through this queue so DMA transmits only happen
  *  in the main loop, never inside the audio ISR. B2: notes only - a
@@ -1396,6 +1412,18 @@ static void PollControls()
                 }
                 continue;
             }
+            /* SHIFT + Black 6 (C#4) / Black 7 (D#4): audio routing
+             * selection, Normal Mode only (the Modulation-Mode branch
+             * above already consumed black keys with SHIFT). Consumed
+             * before note-on, so these combos no longer play a note;
+             * releases are no-ops (active_note_ never set). */
+            if(shift_held_
+               && (swid == static_cast<int>(Hardware::SwId::KEY_21)
+                   || swid == static_cast<int>(Hardware::SwId::KEY_22)))
+            {
+                routing_ = RoutingAfterKey(routing_, swid);
+                continue;
+            }
             if(shift_held_ && oct_key)
             {
                 int oct = octave_
@@ -1853,6 +1881,10 @@ void AudioCallback(AudioHandle::InputBuffer in,
     /* decode one block of the current take (silence while the mode is
      * off, paused or the ring is empty) */
     sd_player_.PopBlock(play_mix_l, play_mix_r, size);
+    /* Playback Mode forces Normal routing (the takes must be audible
+     * in the headphones); the stored selection resumes on exit */
+    engine.SetRouting(playback_mode_ == kPbOff ? routing_
+                                               : kRoutingNormal);
     engine.Process(out, size, in[2], in[3]);
     /* capture the pre-gain record tap (fixed -6 dB take level) */
     sd_recorder_.PushBlock(rec_tap_l, rec_tap_r, size);

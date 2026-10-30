@@ -11,7 +11,7 @@ COREJSON_DIR = ../libs/coreJSON/source
 parameter_steps_test: parameter_steps_test.cpp ../src/ParameterSteps.h
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
-test: parameter_steps_test tonewheel_character_test plate_reverb_test distortion_test vibrato_test envelope_map_test drift_modulator_test organ_preset_test mod_dest_test percussion_test stereo_bbd_delay_test sine_lut_test sd_recorder_test sd_player_test midi_cc_map_test
+test: parameter_steps_test tonewheel_character_test plate_reverb_test distortion_test vibrato_test envelope_map_test drift_modulator_test organ_preset_test mod_dest_test percussion_test stereo_bbd_delay_test sine_lut_test sd_recorder_test sd_player_test midi_cc_map_test audio_routing_test
 	./parameter_steps_test
 	./tonewheel_character_test
 	./plate_reverb_test
@@ -27,6 +27,7 @@ test: parameter_steps_test tonewheel_character_test plate_reverb_test distortion
 	./sd_recorder_test
 	./sd_player_test
 	./midi_cc_map_test
+	./audio_routing_test
 
 tonewheel_character_test: tonewheel_character_test.cpp ../src/TonewheelCharacter.h
 	$(CXX) $(CXXFLAGS) -o $@ $<
@@ -64,6 +65,13 @@ percussion_test: percussion_test.cpp ../src/Percussion.h ../src/OrganEngine.h ..
 	$(CXX) $(CXXFLAGS) -I$(DAISYSP_SRC) -I$(DAISYSP_SRC)/Utility \
 		-I$(COREJSON_DIR)/include -Wno-unused-parameter -o $@ $<
 
+# audio_routing_test includes OrganEngine.h (output-distribution tests),
+# so it needs the same DaisySP header paths and warning relief as
+# percussion_test (OrganEngine.h does not pull in coreJSON).
+audio_routing_test: audio_routing_test.cpp ../src/AudioRouting.h ../src/OrganEngine.h ../src/ParameterSteps.h
+	$(CXX) $(CXXFLAGS) -I$(DAISYSP_SRC) -I$(DAISYSP_SRC)/Utility \
+		-Wno-unused-parameter -o $@ $<
+
 stereo_bbd_delay_test: stereo_bbd_delay_test.cpp ../src/StereoBbdDelay.h
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
@@ -98,4 +106,5 @@ clean:
 		sine_lut_test sine_lut_test.exe \
 		sd_recorder_test sd_recorder_test.exe \
 	sd_player_test sd_player_test.exe \
-.PHONY: test clean
+	midi_cc_map_test midi_cc_map_test.exe \
+	audio_routing_test audio_routing_test.exe

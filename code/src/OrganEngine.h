@@ -112,6 +112,16 @@
  *    stereo bus into caller-owned block buffers at a fixed -6 dB level
  *    (kRecordTapGain), so card takes are DAW-ready and independent of
  *    the volume knob; the headphone/master outputs are unchanged.
+ *  - Output routing (AudioRouting.h): Normal (boot default) writes the
+ *    same post-master-gain bus to the headphone and line outputs and
+ *    mixes AUX IN into the bus and the record tap; Send FX routes the
+ *    dry pre-master-gain bus to the line output alone (a fixed-level
+ *    send to an external effects unit that the volume knob never
+ *    touches) and AUX IN alone to the headphones (scaled by the master
+ *    gain) and the record tap, and never returns AUX IN to the line
+ *    out, so the loop cannot feed back. Selected with SHIFT + Black 6 /
+ *    Black 7 in Normal Mode; Playback Mode forces Normal at the call
+ *    site so takes stay audible in the headphones.
  */
 #pragma once
 #include "daisysp.h"
@@ -126,6 +136,7 @@
 #include "DriftModulator.h"
 #include "Percussion.h"
 #include "ParameterSteps.h"
+#include "AudioRouting.h"
 
 namespace chompi
 {
@@ -768,8 +779,10 @@ class OrganEngine
     /** SD-recording tap: when set, Process() writes each block's
      *  pre-master-gain stereo bus (post pipes/fuzz/rotary/delay/reverb)
      *  into these buffers at the fixed -6 dB record level
-     *  (kRecordTapGain). The buffers must hold at least one audio block
-     *  per channel; a nullptr disables the tap (exact zero cost). */
+     *  (kRecordTapGain); with Send FX routing it writes AUX IN alone
+     *  instead, at the same fixed level. The buffers must hold at least
+     *  one audio block per channel; a nullptr disables the tap (exact
+     *  zero cost). */
     void SetRecordTap(float *l, float *r)
     {
         rec_tap_l_ = l;
@@ -788,6 +801,24 @@ class OrganEngine
         pb_in_l_ = l;
         pb_in_r_ = r;
     }
+
+    /** Output routing (AudioRouting): Normal = identical headphone and
+     *  line outputs with AUX IN mixed into the bus and the record tap;
+     *  SendFx = the line output carries only the dry pre-master-gain
+     *  bus (a fixed send level), the headphones carry only AUX IN
+     *  scaled by the master gain and the record tap captures AUX IN
+     *  alone. Called once per block from the audio callback; takes
+     *  effect on the next Process() run with no smoothing (an
+     *  instantaneous, hardware-switch-like change). Anything that is
+     *  not kRoutingSendFx selects Normal. */
+    void SetRouting(int r)
+    {
+        routing_ = static_cast<uint8_t>(r == kRoutingSendFx
+                                            ? kRoutingSendFx
+                                            : kRoutingNormal);
+    }
+
+    int GetRouting() const { return routing_; }
 
     void SetFineTuneStep(int step)
     {
@@ -1040,6 +1071,14 @@ class OrganEngine
     void Process(float **out, size_t size,
                  const float *aux_l = nullptr, const float *aux_r = nullptr)
     {
+        /* Send FX routing (AudioRouting.h), once per block: the line
+         * out carries only the dry pre-master-gain bus, the headphones
+         * and the record tap carry only AUX IN. Without valid AUX
+         * pointers the Send FX path is impossible, so fall back to
+         * Normal. The call site forces Normal routing while Playback
+         * Mode is active. */
+        const bool send_fx = routing_ == kRoutingSendFx
+                             && aux_l != nullptr && aux_r != nullptr;
         for(size_t i = 0; i < size; i++)
         {
             /* Smooth pipe gains and master gain (~1 ms slew). Advance the
@@ -1243,17 +1282,30 @@ class OrganEngine
              * dry and wet equally and 0% master mutes the tail. The tank
              * runs even with idle voices; 0% mix is bit-exact dry. */
             plate_.Process(out_l, out_r, out_l, out_r);
-            if(aux_l != nullptr && aux_r != nullptr)
+            /* AUX IN: Normal routing mixes it into the bus (post-FX, so
+             * it reaches both outputs and the record tap); Send FX
+             * keeps it out of the bus - the line out must carry only
+             * the dry organ or the external loop would feed back. */
+            if(aux_l != nullptr && aux_r != nullptr && !send_fx)
             {
                 out_l += aux_l[i];
                 out_r += aux_r[i];
             }
             /* record tap: the pre-master-gain bus at the fixed -6 dB
-             * recording level - the volume knob never touches a take */
+             * recording level - the volume knob never touches a take.
+             * Send FX taps AUX IN alone, at the same fixed level. */
             if(rec_tap_l_ != nullptr)
             {
-                rec_tap_l_[i] = out_l * kRecordTapGain;
-                rec_tap_r_[i] = out_r * kRecordTapGain;
+                if(send_fx)
+                {
+                    rec_tap_l_[i] = aux_l[i] * kRecordTapGain;
+                    rec_tap_r_[i] = aux_r[i] * kRecordTapGain;
+                }
+                else
+                {
+                    rec_tap_l_[i] = out_l * kRecordTapGain;
+                    rec_tap_r_[i] = out_r * kRecordTapGain;
+                }
             }
             /* SD playback: injected after the record-tap write (a
              * take is never re-recorded, whatever the recorder gate)
@@ -1264,12 +1316,26 @@ class OrganEngine
                 out_l += pb_in_l_[i];
                 out_r += pb_in_r_[i];
             }
-            out_l *= master_gain_;
-            out_r *= master_gain_;
-            out[0][i] = out_l; /* headphone L */
-            out[1][i] = out_r; /* headphone R */
-            out[2][i] = out_l; /* master L */
-            out[3][i] = out_r; /* master R */
+            if(send_fx)
+            {
+                /* headphones: the AUX return only, scaled by the master
+                 * gain (the volume knob is the return level); line out:
+                 * the pre-master-gain bus, a fixed-level send the
+                 * volume knob never touches */
+                out[0][i] = aux_l[i] * master_gain_; /* headphone L */
+                out[1][i] = aux_r[i] * master_gain_; /* headphone R */
+                out[2][i] = out_l; /* master L: fixed send */
+                out[3][i] = out_r; /* master R: fixed send */
+            }
+            else
+            {
+                out_l *= master_gain_;
+                out_r *= master_gain_;
+                out[0][i] = out_l; /* headphone L */
+                out[1][i] = out_r; /* headphone R */
+                out[2][i] = out_l; /* master L */
+                out[3][i] = out_r; /* master R */
+            }
         }
     }
 
@@ -1403,6 +1469,7 @@ class OrganEngine
     float    master_gain_;
     float    master_gain_target_;
     uint8_t  master_step_;
+    uint8_t  routing_ = kRoutingDefault; /* AudioRouting; boots Normal */
     float   *rec_tap_l_ = nullptr; /* pre-gain record tap, -6 dB */
     float   *rec_tap_r_ = nullptr;
     const float *pb_in_l_ = nullptr; /* SD playback: post-tap,
