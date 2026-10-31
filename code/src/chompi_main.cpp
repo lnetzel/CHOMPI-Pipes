@@ -2372,10 +2372,19 @@ static void UpdateLeds()
                        dn > 0.f ? .5f * dn : .10f, 0.f);
         SetSmtLedFloat(1, up > 0.f ? up : .10f,
                        up > 0.f ? .5f * up : .10f, 0.f);
+        /* the active routing's selection key (Black 6/7) glows pink
+         * while SHIFT is held - live feedback for the selection
+         * gesture itself */
+        float rr, rg, rb;
+        RoutingColor(rr, rg, rb);
+        SetSmtLedFloat(led_map[RoutingKeySw(routing_)], rr, rg, rb);
     }
     else
     {
         bar_pipe_ = -1;
+        /* the active routing's selection key (Black 6/7) glows pink;
+         * a held note on that key wins while pressed */
+        const int routing_swid = RoutingKeySw(routing_);
         for(int swid = 7; swid < 32; swid++)
         {
             /* physical key held (octave-shifted note) or MIDI-held note
@@ -2385,8 +2394,17 @@ static void UpdateLeds()
             const bool on
                 = prev_key_[swid]
                   || engine.IsNoteHeld(static_cast<uint8_t>(held_note));
-            SetSmtLedFloat(led_map[swid], on ? 1.f : 0.f, on ? 1.f : 0.f,
-                           on ? 1.f : 0.f);
+            if(!on && swid == routing_swid)
+            {
+                float r, g, b;
+                RoutingColor(r, g, b);
+                SetSmtLedFloat(led_map[swid], r, g, b);
+            }
+            else
+            {
+                SetSmtLedFloat(led_map[swid], on ? 1.f : 0.f, on ? 1.f : 0.f,
+                               on ? 1.f : 0.f);
+            }
         }
     }
 
@@ -2437,8 +2455,9 @@ static void UpdateLeds()
             SetSmtLedFloat(led_map[kModDestKeySw[d]], r * s, g * s, b * s);
         }
         /* the seven destination keys occupy SMT LEDs 0-4, 7 and 8
-         * (led_map); force off the other black-key LEDs (5, 6, 9),
-         * even while those keys play notes */
+         * (led_map); the active routing's selection key (SMT 5 or 6)
+         * shows the routing pink; force off the remaining black-key
+         * LEDs, even while those keys play notes */
         bool dest_led[10] = {false};
         for(int d = 0; d < kNumModDests; d++)
         {
@@ -2446,9 +2465,15 @@ static void UpdateLeds()
             if(led < 10)
                 dest_led[led] = true;
         }
+        const int routing_led = led_map[RoutingKeySw(routing_)];
+        if(routing_led < 10)
+            dest_led[routing_led] = true;
         for(int i = 0; i < 10; i++)
             if(!dest_led[i])
                 SetSmtLedFloat(i, 0.f, 0.f, 0.f);
+        float rr, rg, rb;
+        RoutingColor(rr, rg, rb);
+        SetSmtLedFloat(routing_led, rr, rg, rb);
     }
 
     /* knob LEDs: pipe values on PTH 1-4, master volume on PTH 9.

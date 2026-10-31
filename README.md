@@ -30,10 +30,13 @@ CHOMPI key):
   and recordings are silent - that is the point: set the external unit
   to 100% wet.
 
-The selection is session-only (boots on Normal, not stored in presets)
-and has no LED feedback. In Playback mode the routing is always forced
-to Normal, so takes stay audible in the headphones; the selection
-resumes when Playback mode exits.
+The selection is session-only (boots on Normal, not stored in
+presets). The active routing is shown in pink on its black key's LED:
+Black 6 (C#4) pink = Normal, Black 7 (D#4) pink = Send FX. A note held
+on that key and the full-keyboard bar/mode views take priority; the
+pink returns when they end. In Playback mode the routing is always
+forced to Normal, so takes stay audible in the headphones; the
+selection resumes when Playback mode exits.
 
 ## Controls
 

@@ -50,6 +50,27 @@ static void test_key_mapping()
     assert(RoutingAfterKey(kRoutingSendFx, 40) == kRoutingSendFx);
 }
 
+static void test_key_for_routing()
+{
+    assert(RoutingKeySw(kRoutingNormal) == 22);   /* Black 6, C#4 */
+    assert(RoutingKeySw(kRoutingSendFx) == 23);   /* Black 7, D#4 */
+    assert(RoutingKeySw(99) == 22);               /* fallback: Normal */
+    /* inverse of RoutingAfterKey on the selection keys */
+    assert(RoutingAfterKey(kRoutingSendFx, RoutingKeySw(kRoutingNormal))
+           == kRoutingNormal);
+    assert(RoutingAfterKey(kRoutingNormal, RoutingKeySw(kRoutingSendFx))
+           == kRoutingSendFx);
+}
+
+static void test_indicator_color()
+{
+    /* the selection indicator is pink: full red, half blue, no green -
+     * distinct from the preset/destination purple (.55, 0, 1) */
+    float r, g, b;
+    RoutingColor(r, g, b);
+    assert(r == 1.f && g == 0.f && b == .5f);
+}
+
 /* ------------------------------------------------------------------ */
 /* OrganEngine integration (DaisySP is host-compilable)               */
 /* ------------------------------------------------------------------ */
@@ -305,6 +326,8 @@ int main()
 {
     test_boot_default();
     test_key_mapping();
+    test_key_for_routing();
+    test_indicator_color();
     test_engine_boot_state();
     test_normal_routing();
     test_normal_routing_aux_reaches_line_out();

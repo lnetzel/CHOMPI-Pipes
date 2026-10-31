@@ -34,7 +34,7 @@ These were settled with the user before this plan was written:
 | Which physical keys? | Black 6 (C#4) and Black 7 (D#4) — the 6th/7th black keys from the left. They are the black keys Modulation Mode does NOT use for destination selection (keys 6, 7, 10 are inert there), so there is no conflict. |
 | Line-out send level in Send FX mode | Fixed level: the pre-master-gain bus. The volume knob does NOT change the send; it only scales the headphone (AUX return) level. Classic send/return behavior: set the send once, don't disturb the FX unit's input staging. |
 | Where the shortcut works | Normal Mode only (toggle switch DOWN). In Modulation Mode SHIFT + Black 6/7 stays inert as today. |
-| Visual feedback | None. The routing just changes (like octave shifts today). |
+| Visual feedback | Revised after implementation: the active routing's selection key glows pink (Black 6 = Normal, Black 7 = Send FX) in the default view, the SHIFT view and the Modulation-Mode destination overlay; held notes and transient full-keyboard views take priority. (Originally planned as no feedback.) |
 | Persistence | Session-only. Boots to Normal. Never stored in SD-card presets. |
 
 Additional design decisions (defaults, called out for review):
@@ -113,6 +113,9 @@ the native tests exercise the exact production logic):
 - `constexpr int RoutingAfterKey(int cur, int swid)`: SwId 22 (KEY_21, Black
   6) -> `kRoutingNormal`; SwId 23 (KEY_22, Black 7) -> `kRoutingSendFx`; any
   other key -> `cur` unchanged.
+- `constexpr int RoutingKeySw(int routing)`: the inverse (routing ->
+  selection key), for the indicator LED.
+- `RoutingColor(r, g, b)`: the pink indicator color (1, 0, .5).
 - `chompi_main.cpp` static_asserts the two SwId values against
   `Hardware::SwId::KEY_21` / `KEY_22` (the ModDest.h file does the same for
   its key table).

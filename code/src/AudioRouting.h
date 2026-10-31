@@ -25,6 +25,14 @@
  *  Playback Mode exits. The selection is session-only: it boots on
  *  Normal and is never stored in the SD-card presets.
  *
+ *  The active routing is shown in pink on its selection key's LED
+ *  (RoutingColor): in the default held-notes view (a held note on that
+ *  key wins while pressed), in the SHIFT preset view (live feedback
+ *  for the selection gesture) and in Modulation Mode's black-key
+ *  destination overlay. Full-keyboard transient views (value bars,
+ *  preset modes/animations, playback mode) take priority and the
+ *  indicator returns when they end.
+ *
  *  Hardware-independent (no Daisy includes) so the native tests exercise
  *  the exact production logic; chompi_main.cpp static_asserts the key
  *  table against Hardware::SwId.
@@ -61,6 +69,25 @@ constexpr int RoutingAfterKey(int cur, int swid)
     return swid == kRoutingKeySw[0]   ? kRoutingNormal
            : swid == kRoutingKeySw[1] ? kRoutingSendFx
                                       : cur;
+}
+
+/** The selection key's SwId for a routing (the inverse of
+ *  RoutingAfterKey on the selection keys), for the pink indicator LED.
+ *  Anything that is not kRoutingSendFx maps to the Normal key. */
+constexpr int RoutingKeySw(int routing)
+{
+    return routing == kRoutingSendFx ? kRoutingKeySw[1]
+                                     : kRoutingKeySw[0];
+}
+
+/** Routing-indicator color: pink (full red, half blue, no green) -
+ *  distinct from the purple (.55, 0, 1) used by the preset slots and
+ *  the attack-destination key. */
+inline void RoutingColor(float &r, float &g, float &b)
+{
+    r = 1.f;
+    g = 0.f;
+    b = .5f;
 }
 
 } // namespace chompi
